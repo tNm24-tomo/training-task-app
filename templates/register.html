@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>ユーザー登録</h2>
+<form method="post">
+  <div>
+    <label>氏名</label><br>
+    <input name="name" maxlength="50" required>
+  </div>
+  <div>
+    <label>メール</label><br>
+    <input name="email" type="email" maxlength="254" required>
+  </div>
+  <div>
+    <label>パスワード</label><br>
+    <input name="password" type="password" minlength="8" maxlength="72" required>
+  </div>
+  <div>
+    <label>パスワード（確認）</label><br>
+    <input name="password2" type="password" minlength="8" maxlength="72" required>
+  </div>
+  <div style="margin-top:10px;">
+    <button type="submit">登録</button>
+  </div>
+</form>
+{% endblock %}

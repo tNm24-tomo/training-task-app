@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+{% if mode == "new" %}
+  <h2>タスク新規作成</h2>
+  <form method="post">
+    <div>
+      <label>タイトル</label><br>
+      <input name="title" maxlength="100" required>
+    </div>
+    <div>
+      <label>説明</label><br>
+      <textarea name="description" maxlength="2000" rows="4"></textarea>
+    </div>
+    <div>
+      <label>開始日</label><br>
+      <input name="start_date" type="date" required>
+    </div>
+    <div>
+      <label>終了日</label><br>
+      <input name="end_date" type="date" required>
+    </div>
+    <div>
+      <label>ステータス</label><br>
+      <select name="status">
+        <option value="todo">未着手</option>
+        <option value="doing">進行中</option>
+        <option value="done">完了</option>
+      </select>
+    </div>
+    <div>
+      <label>優先度</label><br>
+      <select name="priority">
+        <option value="low">低</option>
+        <option value="medium" selected>中</option>
+        <option value="high">高</option>
+      </select>
+    </div>
+    <div style="margin-top:10px;">
+      <button type="submit">登録</button>
+    </div>
+  </form>
+
+{% elif mode == "detail" %}
+  <h2>タスク詳細</h2>
+  <div>タイトル: {{ task.title }}</div>
+  <div>説明: {{ task.description or "" }}</div>
+  <div>開始日: {{ task.start_date }}</div>
+  <div>終了日: {{ task.end_date }}</div>
+  <div>ステータス: {{ task.status }}</div>
+  <div>優先度: {{ task.priority }}</div>
+  <div>担当: {{ task.assignee.name }}</div>
+
+  <div style="margin-top:12px;">
+    <a href="{{ url_for('task_edit', task_id=task.id) }}">編集</a>
+    <form method="post" action="{{ url_for('task_delete', task_id=task.id) }}" style="display:inline;">
+      <button type="submit" onclick="return confirm('削除しますか？');">削除(論理)</button>
+    </form>
+  </div>
+
+{% else %}
+  <h2>タスク編集</h2>
+  <form method="post">
+    <div>
+      <label>タイトル</label><br>
+      <input name="title" maxlength="100" required value="{{ task.title }}">
+    </div>
+    <div>
+      <label>説明</label><br>
+      <textarea name="description" maxlength="2000" rows="4">{{ task.description or "" }}</textarea>
+    </div>
+    <div>
+      <label>開始日</label><br>
+      <input name="start_date" type="date" required value="{{ task.start_date }}">
+    </div>
+    <div>
+      <label>終了日</label><br>
+      <input name="end_date" type="date" required value="{{ task.end_date }}">
+    </div>
+    <div>
+      <label>ステータス</label><br>
+      <select name="status">
+        <option value="todo" {% if task.status=='todo' %}selected{% endif %}>未着手</option>
+        <option value="doing" {% if task.status=='doing' %}selected{% endif %}>進行中</option>
+        <option value="done" {% if task.status=='done' %}selected{% endif %}>完了</option>
+      </select>
+    </div>
+    <div>
+      <label>優先度</label><br>
+      <select name="priority">
+        <option value="low" {% if task.priority=='low' %}selected{% endif %}>低</option>
+        <option value="medium" {% if task.priority=='medium' %}selected{% endif %}>中</option>
+        <option value="high" {% if task.priority=='high' %}selected{% endif %}>高</option>
+      </select>
+    </div>
+    <div style="margin-top:10px;">
+      <button type="submit">保存</button>
+    </div>
+  </form>
+{% endif %}
+{% endblock %}

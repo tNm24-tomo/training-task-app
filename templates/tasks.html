@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>タスク一覧</h2>
+
+<form method="get" style="margin-bottom:12px;">
+  <input name="q" placeholder="タイトル検索" value="{{ keyword }}">
+  <select name="status">
+    <option value="">ステータス(全て)</option>
+    <option value="todo" {% if status=='todo' %}selected{% endif %}>未着手</option>
+    <option value="doing" {% if status=='doing' %}selected{% endif %}>進行中</option>
+    <option value="done" {% if status=='done' %}selected{% endif %}>完了</option>
+  </select>
+  <button type="submit">検索</button>
+</form>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>タイトル</th>
+      <th>ステータス</th>
+      <th>遅延</th>
+      <th>開始日</th>
+      <th>終了日</th>
+      <th>優先度</th>
+      <th>担当</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in tasks %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td><a href="{{ url_for('task_detail', task_id=t.id) }}">{{ t.title }}</a></td>
+      <td>{{ t.status }}</td>
+      <td class="{% if is_overdue(t) %}overdue{% endif %}">
+        {% if is_overdue(t) %}遅延{% else %}-{% endif %}
+      </td>
+      <td>{{ t.start_date }}</td>
+      <td>{{ t.end_date }}</td>
+      <td>{{ t.priority }}</td>
+      <td>{{ t.assignee.name }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
