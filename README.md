@@ -1,7 +1,22 @@
-本リポジトリは研修用サンプルアプリ
+# training-task-app
 
-実運用想定ではない
+研修用のタスク管理Webアプリです。  
+実運用は想定していません。
 
-機密情報は含まない
+## 主な機能
+- ログイン / ログアウト
+- ユーザー登録
+- タスク作成 / 一覧 / 編集 / 論理削除
+- 管理者 / 一般ユーザーの権限分離
+- 遅延表示
 
-ローカル実行前提
+## ローカル起動
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Mac
+source venv/bin/activate
+
+pip install -r requirements.txt
+python app.py
