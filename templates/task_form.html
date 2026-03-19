@@ -1,99 +1,134 @@
 {% extends "base.html" %}
 {% block content %}
 {% if mode == "new" %}
-  <h2>タスク新規作成</h2>
-  <form method="post">
-    <div>
-      <label>タイトル</label><br>
+  <section class="page-header">
+    <h2>タスク新規作成</h2>
+    <p>必要項目を入力して、新しいタスクを登録します。</p>
+  </section>
+  <form method="post" class="form-grid">
+    <div class="form-field full">
+      <label>タイトル</label>
       <input name="title" maxlength="100" required>
     </div>
-    <div>
-      <label>説明</label><br>
+    <div class="form-field full">
+      <label>説明</label>
       <textarea name="description" maxlength="2000" rows="4"></textarea>
     </div>
-    <div>
-      <label>開始日</label><br>
+    <div class="form-field">
+      <label>開始日</label>
       <input name="start_date" type="date" required>
     </div>
-    <div>
-      <label>終了日</label><br>
+    <div class="form-field">
+      <label>終了日</label>
       <input name="end_date" type="date" required>
     </div>
-    <div>
-      <label>ステータス</label><br>
+    <div class="form-field">
+      <label>ステータス</label>
       <select name="status">
         <option value="todo">未着手</option>
         <option value="doing">進行中</option>
         <option value="done">完了</option>
       </select>
     </div>
-    <div>
-      <label>優先度</label><br>
+    <div class="form-field">
+      <label>優先度</label>
       <select name="priority">
         <option value="low">低</option>
         <option value="medium" selected>中</option>
         <option value="high">高</option>
       </select>
     </div>
-    <div style="margin-top:10px;">
+    <div class="form-actions">
       <button type="submit">登録</button>
+      <a class="button-link" href="{{ url_for('tasks') }}">一覧へ戻る</a>
     </div>
   </form>
 
 {% elif mode == "detail" %}
-  <h2>タスク詳細</h2>
-  <div>タイトル: {{ task.title }}</div>
-  <div>説明: {{ task.description or "" }}</div>
-  <div>開始日: {{ task.start_date }}</div>
-  <div>終了日: {{ task.end_date }}</div>
-  <div>ステータス: {{ task.status }}</div>
-  <div>優先度: {{ task.priority }}</div>
-  <div>担当: {{ task.assignee.name }}</div>
+  <section class="page-header">
+    <h2>タスク詳細</h2>
+    <p>内容確認用の画面です。編集や削除もここから行えます。</p>
+  </section>
 
-  <div style="margin-top:12px;">
-    <a href="{{ url_for('task_edit', task_id=task.id) }}">編集</a>
-    <form method="post" action="{{ url_for('task_delete', task_id=task.id) }}" style="display:inline;">
-      <button type="submit" onclick="return confirm('削除しますか？');">削除(論理)</button>
+  <section class="task-meta">
+    <div class="task-meta-item">
+      <strong>タイトル</strong>
+      <span>{{ task.title }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>説明</strong>
+      <span>{{ task.description or "" }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>開始日</strong>
+      <span>{{ task.start_date }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>終了日</strong>
+      <span>{{ task.end_date }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>ステータス</strong>
+      <span class="status-pill {{ task.status }}">{{ task.status }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>優先度</strong>
+      <span class="priority-pill {{ task.priority }}">{{ task.priority }}</span>
+    </div>
+    <div class="task-meta-item">
+      <strong>担当者</strong>
+      <span>{{ task.assignee.name }}</span>
+    </div>
+  </section>
+
+  <div class="actions-row">
+    <a class="button-link" href="{{ url_for('task_edit', task_id=task.id) }}">編集</a>
+    <form method="post" action="{{ url_for('task_delete', task_id=task.id) }}" class="inline-form">
+      <button type="submit" onclick="return confirm('削除しますか？');">削除</button>
     </form>
   </div>
 
 {% else %}
-  <h2>タスク編集</h2>
-  <form method="post">
-    <div>
-      <label>タイトル</label><br>
+  <section class="page-header">
+    <h2>タスク編集</h2>
+    <p>内容を更新して保存します。</p>
+  </section>
+  <form method="post" class="form-grid">
+    <div class="form-field full">
+      <label>タイトル</label>
       <input name="title" maxlength="100" required value="{{ task.title }}">
     </div>
-    <div>
-      <label>説明</label><br>
+    <div class="form-field full">
+      <label>説明</label>
       <textarea name="description" maxlength="2000" rows="4">{{ task.description or "" }}</textarea>
     </div>
-    <div>
-      <label>開始日</label><br>
+    <div class="form-field">
+      <label>開始日</label>
       <input name="start_date" type="date" required value="{{ task.start_date }}">
     </div>
-    <div>
-      <label>終了日</label><br>
+    <div class="form-field">
+      <label>終了日</label>
       <input name="end_date" type="date" required value="{{ task.end_date }}">
     </div>
-    <div>
-      <label>ステータス</label><br>
+    <div class="form-field">
+      <label>ステータス</label>
       <select name="status">
         <option value="todo" {% if task.status=='todo' %}selected{% endif %}>未着手</option>
         <option value="doing" {% if task.status=='doing' %}selected{% endif %}>進行中</option>
         <option value="done" {% if task.status=='done' %}selected{% endif %}>完了</option>
       </select>
     </div>
-    <div>
-      <label>優先度</label><br>
+    <div class="form-field">
+      <label>優先度</label>
       <select name="priority">
         <option value="low" {% if task.priority=='low' %}selected{% endif %}>低</option>
         <option value="medium" {% if task.priority=='medium' %}selected{% endif %}>中</option>
         <option value="high" {% if task.priority=='high' %}selected{% endif %}>高</option>
       </select>
     </div>
-    <div style="margin-top:10px;">
-      <button type="submit">保存</button>
+    <div class="form-actions">
+      <button type="submit">更新</button>
+      <a class="button-link" href="{{ url_for('task_detail', task_id=task.id) }}">詳細へ戻る</a>
     </div>
   </form>
 {% endif %}

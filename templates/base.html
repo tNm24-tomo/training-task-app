@@ -4,39 +4,41 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Training Task App</title>
-  <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .nav { margin-bottom: 16px; }
-    .msg { padding: 8px 10px; margin: 10px 0; border: 1px solid #ccc; }
-    .error { border-color: #c00; }
-    .info { border-color: #06c; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    .overdue { font-weight: bold; }
-    a { text-decoration: none; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <div class="nav">
-    {% if current_user.is_authenticated %}
-      ログイン中: {{ current_user.name }} ({{ current_user.role }})
-      / <a href="{{ url_for('tasks') }}">タスク一覧</a>
-      / <a href="{{ url_for('task_new') }}">新規作成</a>
-      / <a href="{{ url_for('logout') }}">ログアウト</a>
-    {% else %}
-      <a href="{{ url_for('login') }}">ログイン</a>
-      / <a href="{{ url_for('register') }}">ユーザー登録</a>
-    {% endif %}
+  <div class="page-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Training Task App</p>
+        <h1 class="page-title">Task Management</h1>
+      </div>
+      <nav class="nav">
+        {% if current_user.is_authenticated %}
+          <span class="nav-user">ログイン中: {{ current_user.name }} ({{ current_user.role }})</span>
+          <a href="{{ url_for('tasks') }}">タスク一覧</a>
+          <a href="{{ url_for('task_new') }}">新規作成</a>
+          <a href="{{ url_for('logout') }}">ログアウト</a>
+        {% else %}
+          <a href="{{ url_for('login') }}">ログイン</a>
+          <a href="{{ url_for('register') }}">ユーザー登録</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-list">
+          {% for category, message in messages %}
+            <div class="msg {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+
+    <main class="content-card">
+      {% block content %}{% endblock %}
+    </main>
   </div>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="msg {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-
-  {% block content %}{% endblock %}
 </body>
 </html>

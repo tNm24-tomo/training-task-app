@@ -1,29 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>ログイン</h2>
-<form method="post">
-  <div>
-    <label>メール</label><br>
-    <input name="email" type="email" required>
-  </div>
-  <div>
-    <label>パスワード</label><br>
-    <input name="password" type="password" required>
-  </div>
-  <div style="margin-top:10px;">
-    <button type="submit">ログイン</button>
-  </div>
-</form>
+<div class="auth-shell">
+  <section class="page-header">
+    <h2>ログイン</h2>
+    <p>登録済みユーザーとしてタスク管理画面に入ります。</p>
+  </section>
 
-<p style="margin-top:12px;">
-  <a href="{{ url_for('register') }}">ユーザー登録</a>
-</p>
+  <form method="post" class="auth-stack">
+    <div class="form-field">
+      <label>メールアドレス</label>
+      <input name="email" type="email" required>
+    </div>
+    <div class="form-field">
+      <label>パスワード</label>
+      <input name="password" type="password" required>
+    </div>
+    <div class="form-actions">
+      <button type="submit">ログイン</button>
+    </div>
+  </form>
 
-<p style="margin-top:12px;">
-  研修用初期アカウント:
-  admin@example.com / Admin1234
-  , user1@example.com / User1234
-  , user2@example.com / User1234
-  , inactive@example.com / User1234(ログイン不可)
-</p>
+  <p class="muted-link">
+    <a href="{{ url_for('register') }}">ユーザー登録はこちら</a>
+  </p>
+</div>
 {% endblock %}

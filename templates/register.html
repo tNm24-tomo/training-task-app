@@ -1,25 +1,32 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>ユーザー登録</h2>
-<form method="post">
-  <div>
-    <label>氏名</label><br>
-    <input name="name" maxlength="50" required>
-  </div>
-  <div>
-    <label>メール</label><br>
-    <input name="email" type="email" maxlength="254" required>
-  </div>
-  <div>
-    <label>パスワード</label><br>
-    <input name="password" type="password" minlength="8" maxlength="72" required>
-  </div>
-  <div>
-    <label>パスワード（確認）</label><br>
-    <input name="password2" type="password" minlength="8" maxlength="72" required>
-  </div>
-  <div style="margin-top:10px;">
-    <button type="submit">登録</button>
-  </div>
-</form>
+<div class="auth-shell">
+  <section class="page-header">
+    <h2>ユーザー登録</h2>
+    <p>テスト用の新規ユーザーを作成します。</p>
+  </section>
+
+  <form method="post" class="auth-stack">
+    <div class="form-field">
+      <label>名前</label>
+      <input name="name" maxlength="50" required>
+    </div>
+    <div class="form-field">
+      <label>メールアドレス</label>
+      <input name="email" type="email" maxlength="254" required>
+    </div>
+    <div class="form-field">
+      <label>パスワード</label>
+      <input name="password" type="password" minlength="8" maxlength="72" required>
+    </div>
+    <div class="form-field">
+      <label>パスワード(確認)</label>
+      <input name="password2" type="password" minlength="8" maxlength="72" required>
+    </div>
+    <div class="form-actions">
+      <button type="submit">登録</button>
+      <a class="button-link" href="{{ url_for('login') }}">ログインへ戻る</a>
+    </div>
+  </form>
+</div>
 {% endblock %}
