@@ -13,8 +13,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///app.db")
+
+# 環境変数
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+
+app.config["SECRET_KEY"] = SECRET_KEY
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -32,11 +37,10 @@ class User(db.Model, UserMixin):
     name = db.Column(db.String(50), nullable=False)
     email = db.Column(db.String(254), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(10), nullable=False, default="user")  # "admin" or "user"
-    status = db.Column(db.String(10), nullable=False, default="active")  # "active" or "inactive"
+    role = db.Column(db.String(10), nullable=False, default="user")  # admin / user
+    status = db.Column(db.String(10), nullable=False, default="active")  # active / inactive
 
     def is_active(self) -> bool:
-        # Flask-Login: inactive user cannot login
         return self.status == "active"
 
     def check_password(self, raw: str) -> bool:
@@ -51,8 +55,8 @@ class Task(db.Model):
     description = db.Column(db.String(2000), nullable=True)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
-    status = db.Column(db.String(10), nullable=False, default="todo")  # todo/doing/done
-    priority = db.Column(db.String(10), nullable=False, default="medium")  # low/medium/high
+    status = db.Column(db.String(10), nullable=False, default="todo")  # todo / doing / done
+    priority = db.Column(db.String(10), nullable=False, default="medium")  # low / medium / high
 
     assignee_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
@@ -66,36 +70,39 @@ class Task(db.Model):
 @login_manager.user_loader
 def load_user(user_id: str) -> Optional[User]:
     try:
-        uid = int(user_id)
-    except ValueError:
+        return db.session.get(User, int(user_id))
+    except Exception:
         return None
-    return db.session.get(User, uid)
 
 
 # -------------------------
 # Helpers
 # -------------------------
-def require_admin() -> None:
-    if not current_user.is_authenticated:
-        abort(401)
-    if getattr(current_user, "role", "") != "admin":
-        abort(403)
-
-
 def parse_date(value: str) -> Optional[date]:
-    # HTML date input: YYYY-MM-DD
     try:
-        parts = value.split("-")
-        if len(parts) != 3:
-            return None
-        y, m, d = map(int, parts)
+        y, m, d = map(int, value.split("-"))
         return date(y, m, d)
     except Exception:
         return None
 
 
+def get_task_or_404(task_id: int) -> Task:
+    task = db.session.get(Task, task_id)
+    if task is None or task.is_deleted:
+        abort(404)
+    return task
+
+
+def can_access_task(task: Task) -> bool:
+    if current_user.role == "admin":
+        return True
+    return task.assignee_user_id == current_user.id
+
+
 def seed_if_empty() -> None:
-    # users が空なら、研修用アカウントとタスクを投入
+    """
+    初回だけダミーユーザーとダミータスクを作る
+    """
     if User.query.count() > 0:
         return
 
@@ -106,75 +113,64 @@ def seed_if_empty() -> None:
         role="admin",
         status="active",
     )
-    u1 = User(
+    user1 = User(
         name="Trainee A",
         email="user1@example.com",
         password_hash=generate_password_hash("User1234"),
         role="user",
         status="active",
     )
-    u2 = User(
+    user2 = User(
         name="Trainee B",
         email="user2@example.com",
         password_hash=generate_password_hash("User1234"),
         role="user",
         status="active",
     )
-    inactive = User(
-        name="Inactive User",
-        email="inactive@example.com",
-        password_hash=generate_password_hash("User1234"),
-        role="user",
-        status="inactive",
-    )
 
-    db.session.add_all([admin, u1, u2, inactive])
+    db.session.add_all([admin, user1, user2])
     db.session.commit()
 
-    # タスクの種（正常/期限切れ/完了/他人担当）
-    t1 = Task(
-        title="Normal task",
-        description="A normal task for user1",
-        start_date=date(2026, 4, 1),
-        end_date=date(2026, 4, 20),
-        status="todo",
-        priority="medium",
-        assignee_user_id=u1.id,
-        created_by_user_id=admin.id,
-    )
-    t2 = Task(
-        title="Overdue task",
-        description="End date in the past, not done",
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 1, 10),
-        status="doing",
-        priority="high",
-        assignee_user_id=u1.id,
-        created_by_user_id=admin.id,
-    )
-    t3 = Task(
-        title="Done task",
-        description="Done, even if end date is past",
-        start_date=date(2026, 1, 1),
-        end_date=date(2026, 1, 10),
-        status="done",
-        priority="low",
-        assignee_user_id=u1.id,
-        created_by_user_id=admin.id,
-    )
-    t4 = Task(
-        title="Other user's task",
-        description="Assigned to user2",
-        start_date=date(2026, 4, 5),
-        end_date=date(2026, 4, 25),
-        status="todo",
-        priority="medium",
-        assignee_user_id=u2.id,
-        created_by_user_id=admin.id,
-    )
-
-    db.session.add_all([t1, t2, t3, t4])
+    tasks = [
+        Task(
+            title="Normal task",
+            description="A normal task for user1",
+            start_date=date(2026, 4, 1),
+            end_date=date(2026, 4, 20),
+            status="todo",
+            priority="medium",
+            assignee_user_id=user1.id,
+            created_by_user_id=admin.id,
+        ),
+        Task(
+            title="Overdue task",
+            description="Past end date and not completed",
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 1, 10),
+            status="doing",
+            priority="high",
+            assignee_user_id=user1.id,
+            created_by_user_id=admin.id,
+        ),
+        Task(
+            title="Other user's task",
+            description="Assigned to user2",
+            start_date=date(2026, 4, 5),
+            end_date=date(2026, 4, 25),
+            status="todo",
+            priority="medium",
+            assignee_user_id=user2.id,
+            created_by_user_id=admin.id,
+        ),
+    ]
+    db.session.add_all(tasks)
     db.session.commit()
+
+
+def bootstrap() -> None:
+    with app.app_context():
+        db.create_all()
+        seed_if_empty()
 
 
 # -------------------------
@@ -195,7 +191,6 @@ def login():
 
         user = User.query.filter_by(email=email).first()
 
-        # 失敗理由を特定させない（固定メッセージ）
         if (user is None) or (not user.check_password(password)) or (user.status != "active"):
             flash("メールアドレスまたはパスワードが違います。", "error")
             return render_template("login.html")
@@ -222,6 +217,7 @@ def register():
         password2 = request.form.get("password2") or ""
 
         errors = []
+
         if not name:
             errors.append("氏名は必須です。")
         if len(name) > 50:
@@ -243,7 +239,7 @@ def register():
         if password != password2:
             errors.append("パスワード確認が一致しません。")
 
-        if User.query.filter_by(email=email).first() is not None:
+        if User.query.filter_by(email=email).first():
             errors.append("このメールは既に登録されています。")
 
         if errors:
@@ -260,6 +256,7 @@ def register():
         )
         db.session.add(user)
         db.session.commit()
+
         flash("登録が完了しました。ログインしてください。", "info")
         return redirect(url_for("login"))
 
@@ -269,42 +266,33 @@ def register():
 @app.route("/tasks")
 @login_required
 def tasks():
-    # 管理者は全件（削除除外）、一般は自分担当のみ（削除除外）
-    q = Task.query.filter_by(is_deleted=False)
+    query = Task.query.filter_by(is_deleted=False)
 
     if current_user.role != "admin":
-        q = q.filter_by(assignee_user_id=current_user.id)
+        query = query.filter_by(assignee_user_id=current_user.id)
 
-    # 簡易検索・絞り込み（研修用の最低限）
     keyword = (request.args.get("q") or "").strip()
     status = (request.args.get("status") or "").strip()
 
     if keyword:
-        q = q.filter(Task.title.contains(keyword))
+        query = query.filter(Task.title.contains(keyword))
     if status in {"todo", "doing", "done"}:
-        q = q.filter_by(status=status)
+        query = query.filter_by(status=status)
 
-    tasks_list = q.order_by(Task.id.desc()).all()
+    task_list = query.order_by(Task.id.desc()).all()
 
-    # 遅延表示は保存せず計算（フェーズ2の題材の一部を先に入れるならここ）
     today = date.today()
-    def is_overdue(t: Task) -> bool:
-        return (t.end_date < today) and (t.status != "done")
 
-    return render_template("tasks.html", tasks=tasks_list, is_overdue=is_overdue, keyword=keyword, status=status)
+    def is_overdue(task: Task) -> bool:
+        return (task.end_date < today) and (task.status != "done")
 
-
-def get_task_or_404(task_id: int) -> Task:
-    t = db.session.get(Task, task_id)
-    if t is None or t.is_deleted:
-        abort(404)
-    return t
-
-
-def can_access_task(t: Task) -> bool:
-    if current_user.role == "admin":
-        return True
-    return t.assignee_user_id == current_user.id
+    return render_template(
+        "tasks.html",
+        tasks=task_list,
+        keyword=keyword,
+        status=status,
+        is_overdue=is_overdue,
+    )
 
 
 @app.route("/tasks/new", methods=["GET", "POST"])
@@ -319,20 +307,21 @@ def task_new():
         priority = (request.form.get("priority") or "medium").strip()
 
         errors = []
+
         if not title:
             errors.append("タイトルは必須です。")
         if len(title) > 100:
             errors.append("タイトルは100文字以内です。")
-        if description is not None and len(description) > 2000:
+        if description and len(description) > 2000:
             errors.append("説明は2000文字以内です。")
 
-        sd = parse_date(start_date_raw)
-        ed = parse_date(end_date_raw)
-        if sd is None or ed is None:
+        start_date = parse_date(start_date_raw)
+        end_date = parse_date(end_date_raw)
+
+        if start_date is None or end_date is None:
             errors.append("開始日・終了日は日付形式で入力してください。")
-        else:
-            if sd > ed:
-                errors.append("開始日は終了日以前の日付を指定してください。")
+        elif start_date > end_date:
+            errors.append("開始日は終了日以前の日付を指定してください。")
 
         if status not in {"todo", "doing", "done"}:
             errors.append("ステータスが不正です。")
@@ -344,23 +333,21 @@ def task_new():
                 flash(e, "error")
             return render_template("task_form.html", mode="new", task=None)
 
-        # 一般ユーザーは担当者＝自分固定。管理者もまずは固定（割当はフェーズ2でSCR-11相当を追加）
-        assignee_id = current_user.id
-
-        t = Task(
+        task = Task(
             title=title,
             description=description,
-            start_date=sd,
-            end_date=ed,
+            start_date=start_date,
+            end_date=end_date,
             status=status,
             priority=priority,
-            assignee_user_id=assignee_id,
+            assignee_user_id=current_user.id,
             created_by_user_id=current_user.id,
             is_deleted=False,
         )
-        db.session.add(t)
+        db.session.add(task)
         db.session.commit()
-        return redirect(url_for("task_detail", task_id=t.id))
+
+        return redirect(url_for("task_detail", task_id=task.id))
 
     return render_template("task_form.html", mode="new", task=None)
 
@@ -368,18 +355,17 @@ def task_new():
 @app.route("/tasks/<int:task_id>")
 @login_required
 def task_detail(task_id: int):
-    t = get_task_or_404(task_id)
-    if not can_access_task(t):
-        # 研修用：権限外は403（404にする方針ならここを404に変える）
+    task = get_task_or_404(task_id)
+    if not can_access_task(task):
         abort(403)
-    return render_template("task_form.html", mode="detail", task=t)
+    return render_template("task_form.html", mode="detail", task=task)
 
 
 @app.route("/tasks/<int:task_id>/edit", methods=["GET", "POST"])
 @login_required
 def task_edit(task_id: int):
-    t = get_task_or_404(task_id)
-    if not can_access_task(t):
+    task = get_task_or_404(task_id)
+    if not can_access_task(task):
         abort(403)
 
     if request.method == "POST":
@@ -391,20 +377,21 @@ def task_edit(task_id: int):
         priority = (request.form.get("priority") or "medium").strip()
 
         errors = []
+
         if not title:
             errors.append("タイトルは必須です。")
         if len(title) > 100:
             errors.append("タイトルは100文字以内です。")
-        if description is not None and len(description) > 2000:
+        if description and len(description) > 2000:
             errors.append("説明は2000文字以内です。")
 
-        sd = parse_date(start_date_raw)
-        ed = parse_date(end_date_raw)
-        if sd is None or ed is None:
+        start_date = parse_date(start_date_raw)
+        end_date = parse_date(end_date_raw)
+
+        if start_date is None or end_date is None:
             errors.append("開始日・終了日は日付形式で入力してください。")
-        else:
-            if sd > ed:
-                errors.append("開始日は終了日以前の日付を指定してください。")
+        elif start_date > end_date:
+            errors.append("開始日は終了日以前の日付を指定してください。")
 
         if status not in {"todo", "doing", "done"}:
             errors.append("ステータスが不正です。")
@@ -414,41 +401,35 @@ def task_edit(task_id: int):
         if errors:
             for e in errors:
                 flash(e, "error")
-            return render_template("task_form.html", mode="edit", task=t)
+            return render_template("task_form.html", mode="edit", task=task)
 
-        t.title = title
-        t.description = description
-        t.start_date = sd
-        t.end_date = ed
-        t.status = status
-        t.priority = priority
-
+        task.title = title
+        task.description = description
+        task.start_date = start_date
+        task.end_date = end_date
+        task.status = status
+        task.priority = priority
         db.session.commit()
-        return redirect(url_for("task_detail", task_id=t.id))
 
-    return render_template("task_form.html", mode="edit", task=t)
+        return redirect(url_for("task_detail", task_id=task.id))
+
+    return render_template("task_form.html", mode="edit", task=task)
 
 
 @app.route("/tasks/<int:task_id>/delete", methods=["POST"])
 @login_required
 def task_delete(task_id: int):
-    t = get_task_or_404(task_id)
-    if not can_access_task(t):
+    task = get_task_or_404(task_id)
+    if not can_access_task(task):
         abort(403)
-    t.is_deleted = True
+
+    task.is_deleted = True
     db.session.commit()
     return redirect(url_for("tasks"))
 
 
-# -------------------------
-# Bootstrap DB
-# -------------------------
-def bootstrap() -> None:
-    with app.app_context():
-        db.create_all()
-        seed_if_empty()
-
+# 起動時にテーブル作成と初期データ投入
+bootstrap()
 
 if __name__ == "__main__":
-    bootstrap()
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000)

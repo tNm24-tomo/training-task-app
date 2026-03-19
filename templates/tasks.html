@@ -1,44 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>タスク一覧</h2>
+<section class="page-header">
+  <h2>タスク一覧</h2>
+  <p>検索と状態絞り込みをしながら、担当タスクをざっくり確認できます。</p>
+</section>
 
-<form method="get" style="margin-bottom:12px;">
-  <input name="q" placeholder="タイトル検索" value="{{ keyword }}">
-  <select name="status">
-    <option value="">ステータス(全て)</option>
-    <option value="todo" {% if status=='todo' %}selected{% endif %}>未着手</option>
-    <option value="doing" {% if status=='doing' %}selected{% endif %}>進行中</option>
-    <option value="done" {% if status=='done' %}selected{% endif %}>完了</option>
-  </select>
-  <button type="submit">検索</button>
+<form method="get" class="toolbar">
+  <div class="toolbar-field">
+    <input name="q" placeholder="タスク名で検索" value="{{ keyword }}">
+  </div>
+  <div class="toolbar-field">
+    <select name="status">
+      <option value="">ステータス(すべて)</option>
+      <option value="todo" {% if status=='todo' %}selected{% endif %}>未着手</option>
+      <option value="doing" {% if status=='doing' %}selected{% endif %}>進行中</option>
+      <option value="done" {% if status=='done' %}selected{% endif %}>完了</option>
+    </select>
+  </div>
+  <div class="toolbar-actions">
+    <button type="submit">検索</button>
+  </div>
 </form>
 
-<table>
+<table class="data-table">
   <thead>
     <tr>
       <th>ID</th>
       <th>タイトル</th>
       <th>ステータス</th>
-      <th>遅延</th>
+      <th>期限</th>
       <th>開始日</th>
       <th>終了日</th>
       <th>優先度</th>
-      <th>担当</th>
+      <th>担当者</th>
     </tr>
   </thead>
   <tbody>
     {% for t in tasks %}
     <tr>
-      <td>{{ t.id }}</td>
-      <td><a href="{{ url_for('task_detail', task_id=t.id) }}">{{ t.title }}</a></td>
-      <td>{{ t.status }}</td>
-      <td class="{% if is_overdue(t) %}overdue{% endif %}">
-        {% if is_overdue(t) %}遅延{% else %}-{% endif %}
+      <td data-label="ID">{{ t.id }}</td>
+      <td data-label="タイトル"><a href="{{ url_for('task_detail', task_id=t.id) }}">{{ t.title }}</a></td>
+      <td data-label="ステータス"><span class="status-pill {{ t.status }}">{{ t.status }}</span></td>
+      <td data-label="期限">
+        {% if is_overdue(t) %}
+          <span class="overdue-pill">期限超過</span>
+        {% else %}
+          -
+        {% endif %}
       </td>
-      <td>{{ t.start_date }}</td>
-      <td>{{ t.end_date }}</td>
-      <td>{{ t.priority }}</td>
-      <td>{{ t.assignee.name }}</td>
+      <td data-label="開始日">{{ t.start_date }}</td>
+      <td data-label="終了日">{{ t.end_date }}</td>
+      <td data-label="優先度"><span class="priority-pill {{ t.priority }}">{{ t.priority }}</span></td>
+      <td data-label="担当者">{{ t.assignee.name }}</td>
     </tr>
     {% endfor %}
   </tbody>
