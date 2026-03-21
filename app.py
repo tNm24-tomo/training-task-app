@@ -16,6 +16,16 @@ app = Flask(__name__)
 
 # 環境変数
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")
+
+
+# PostgreSQL接続しようとしている
+# でもドライバがない
+# ↓ だからここを追加
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
 
 app.config["SECRET_KEY"] = SECRET_KEY
